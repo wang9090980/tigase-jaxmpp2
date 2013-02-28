@@ -184,6 +184,16 @@ public class Jaxmpp extends JaxmppCore {
 	 * Connects to server in sync mode. 
 	 */
 	public void login() throws JaxmppException {
+		getProperties().setUserProperty(ResourceBinderModule.BIND_KICK_KEY, Boolean.FALSE);
+		login(true);
+	}
+
+	/**
+	 * Connects to server in sync mode.
+     * <p>Unlike {@link #login()}, this method was invoked by user, and can kick off other login.</p>
+	 */
+	public void userLogin() throws JaxmppException {
+		getProperties().setUserProperty(ResourceBinderModule.BIND_KICK_KEY, Boolean.TRUE);
 		login(true);
 	}
 
@@ -194,7 +204,7 @@ public class Jaxmpp extends JaxmppCore {
 	 *            <code>true</code> to start method in sync mode. In sync mode
 	 *            whole connecting process will be done in this method.
 	 */
-	public void login(boolean sync) throws JaxmppException {
+	private void login(boolean sync) throws JaxmppException {
 		this.sessionObject.clear();
 
 		if (this.sessionLogic != null) {

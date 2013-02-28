@@ -17,6 +17,7 @@
  */
 package tigase.jaxmpp.core.client.xmpp.modules;
 
+import java.util.List;
 import java.util.logging.Logger;
 
 import tigase.jaxmpp.core.client.AsyncCallback;
@@ -81,6 +82,10 @@ public class ResourceBinderModule implements XmppModule {
 	 */
 	public static final String BINDED_RESOURCE_JID = "jaxmpp#bindedResource";
 
+    public static final String BIND_KICK_KEY = "BIND_KICK_KEY";
+
+    public static final String BIND_XSID_KEY = "BIND_XSID_KEY";
+
 	/**
 	 * Event fires on binding error.
 	 */
@@ -116,7 +121,17 @@ public class ResourceBinderModule implements XmppModule {
 		iq.setType(StanzaType.set);
 
 		Element bind = new DefaultElement("bind", null, "urn:ietf:params:xml:ns:xmpp-bind");
-		iq.addChild(bind);
+        // Add kick flag
+        Boolean bindFlag = sessionObject.getUserProperty(BIND_KICK_KEY);
+        bind.setAttribute("kick", bindFlag == null ? Boolean.FALSE.toString() : bindFlag.toString());
+        // Add xsid
+        String xsid = sessionObject.getUserProperty(BIND_XSID_KEY);
+        if (xsid != null && xsid.length() > 0) {
+            Element xsidElement = new DefaultElement("xsid");
+            xsidElement.setValue(xsid);
+            bind.addChild(xsidElement);
+        }
+        iq.addChild(bind);
 		bind.addChild(new DefaultElement("resource", (String) sessionObject.getProperty(SessionObject.RESOURCE), null));
 
 		writer.write(iq, new AsyncCallback() {
@@ -133,8 +148,17 @@ public class ResourceBinderModule implements XmppModule {
 				String name = null;
 				Element bind = responseStanza.getChildrenNS("bind", "urn:ietf:params:xml:ns:xmpp-bind");
 				if (bind != null) {
-					Element c = bind.getFirstChild();
-					name = c != null ? c.getValue() : null;
+                    // Get name
+                    List<Element> elements = bind.getChildren("jid");
+                    if (elements != null && elements.size() > 0) {
+                        name = elements.get(0).getValue();
+                    }
+                    // Get xsid
+                    elements = bind.getChildren("xsid");
+                    if (elements != null && elements.size() > 0) {
+                        String xsid = elements.get(0).getValue();
+                        sessionObject.setUserProperty(BIND_XSID_KEY, xsid);
+                    }
 				}
 				if (name != null) {
 					JID jid = JID.jidInstance(name);
