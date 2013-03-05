@@ -1,7 +1,5 @@
 package tigase.jaxmpp.core.client.xmpp.modules.bind;
 
-import tigase.jaxmpp.core.client.xml.Element;
-
 /**
  * Created with IntelliJ IDEA.
  * User: wangkang
@@ -11,12 +9,7 @@ import tigase.jaxmpp.core.client.xml.Element;
  */
 public abstract class AbstractResourceBinderManager {
 
-    public void initialize() {
-    }
+    public abstract String getXsid();
 
-    public abstract void handleBindRequestElement(Element bind);
-
-    public abstract void handleBindResultElement(Element bind);
-
-    public abstract void setKickFlag(Boolean isKick);
+    public abstract void setXsid(String xsid);
 }

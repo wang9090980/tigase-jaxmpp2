@@ -39,6 +39,7 @@ import tigase.jaxmpp.core.client.xml.DefaultElement;
 import tigase.jaxmpp.core.client.xml.Element;
 import tigase.jaxmpp.core.client.xml.XMLException;
 import tigase.jaxmpp.core.client.xmpp.modules.bind.AbstractResourceBinderManager;
+import tigase.jaxmpp.core.client.xmpp.modules.bind.DefaultResourceBinderManager;
 import tigase.jaxmpp.core.client.xmpp.stanzas.IQ;
 import tigase.jaxmpp.core.client.xmpp.stanzas.Stanza;
 import tigase.jaxmpp.core.client.xmpp.stanzas.StanzaType;
@@ -84,6 +85,8 @@ public class ResourceBinderModule implements XmppModule {
 	 */
 	public static final String BINDED_RESOURCE_JID = "jaxmpp#bindedResource";
 
+    public static final String BIND_KICK_KEY = "BIND_KICK_KEY";
+
 	/**
 	 * Event fires on binding error.
 	 */
@@ -110,6 +113,9 @@ public class ResourceBinderModule implements XmppModule {
 		this.sessionObject = sessionObject;
 		this.writer = packetWriter;
         resourceBinderManager = UniversalFactory.createInstance(AbstractResourceBinderManager.class.getName());
+        if (resourceBinderManager == null) {
+            resourceBinderManager = new DefaultResourceBinderManager();
+        }
 	}
 
 	public void addListener(EventType eventType, Listener<ResourceBindEvent> listener) {
@@ -122,8 +128,15 @@ public class ResourceBinderModule implements XmppModule {
 		iq.setType(StanzaType.set);
 
 		Element bind = new DefaultElement("bind", null, "urn:ietf:params:xml:ns:xmpp-bind");
-        if (resourceBinderManager != null) {
-            resourceBinderManager.handleBindRequestElement(bind);
+        // Add kick flag
+        Boolean bindFlag = sessionObject.getUserProperty(BIND_KICK_KEY);
+        bind.setAttribute("kick", bindFlag == null ? Boolean.FALSE.toString() : bindFlag.toString());
+        // Add xsid
+        String xsid = resourceBinderManager.getXsid();
+        if (xsid != null && xsid.length() > 0) {
+            Element xsidElement = new DefaultElement("xsid");
+            xsidElement.setValue(xsid);
+            bind.addChild(xsidElement);
         }
         iq.addChild(bind);
 		bind.addChild(new DefaultElement("resource", (String) sessionObject.getProperty(SessionObject.RESOURCE), null));
@@ -147,8 +160,11 @@ public class ResourceBinderModule implements XmppModule {
                     if (elements != null && elements.size() > 0) {
                         name = elements.get(0).getValue();
                     }
-                    if (resourceBinderManager != null) {
-                        resourceBinderManager.handleBindResultElement(bind);
+                    // Get xsid
+                    elements = bind.getChildren("xsid");
+                    if (elements != null && elements.size() > 0) {
+                        String xsid = elements.get(0).getValue();
+                        resourceBinderManager.setXsid(xsid);
                     }
 				}
 				if (name != null) {

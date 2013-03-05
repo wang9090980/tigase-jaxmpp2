@@ -29,7 +29,6 @@ import tigase.jaxmpp.core.client.Processor;
 import tigase.jaxmpp.core.client.SessionObject;
 import tigase.jaxmpp.core.client.XmppSessionLogic.SessionListener;
 import tigase.jaxmpp.core.client.exceptions.JaxmppException;
-import tigase.jaxmpp.core.client.factory.UniversalFactory;
 import tigase.jaxmpp.core.client.observer.Observable;
 import tigase.jaxmpp.core.client.observer.ObservableFactory;
 import tigase.jaxmpp.core.client.observer.ObservableFactory.FactorySpi;
@@ -38,7 +37,6 @@ import tigase.jaxmpp.core.client.xml.XMLException;
 import tigase.jaxmpp.core.client.xmpp.modules.ResourceBinderModule;
 import tigase.jaxmpp.core.client.xmpp.modules.ResourceBinderModule.ResourceBindEvent;
 import tigase.jaxmpp.core.client.xmpp.modules.auth.SaslModule;
-import tigase.jaxmpp.core.client.xmpp.modules.bind.AbstractResourceBinderManager;
 import tigase.jaxmpp.core.client.xmpp.modules.capabilities.CapabilitiesModule;
 import tigase.jaxmpp.core.client.xmpp.modules.disco.DiscoInfoModule;
 import tigase.jaxmpp.core.client.xmpp.modules.presence.PresenceModule;
@@ -186,22 +184,6 @@ public class Jaxmpp extends JaxmppCore {
 	 * Connects to server in sync mode. 
 	 */
 	public void login() throws JaxmppException {
-        AbstractResourceBinderManager resourceBinderManager = UniversalFactory.createInstance(AbstractResourceBinderManager.class.getName());
-        if (resourceBinderManager != null) {
-            resourceBinderManager.setKickFlag(Boolean.FALSE);
-        }
-		login(true);
-	}
-
-	/**
-	 * Connects to server in sync mode.
-     * <p>Unlike {@link #login()}, this method was invoked by user, and can kick off other login.</p>
-	 */
-	public void userLogin() throws JaxmppException {
-        AbstractResourceBinderManager resourceBinderManager = UniversalFactory.createInstance(AbstractResourceBinderManager.class.getName());
-        if (resourceBinderManager != null) {
-            resourceBinderManager.setKickFlag(Boolean.TRUE);
-        }
 		login(true);
 	}
 
@@ -212,7 +194,7 @@ public class Jaxmpp extends JaxmppCore {
 	 *            <code>true</code> to start method in sync mode. In sync mode
 	 *            whole connecting process will be done in this method.
 	 */
-	private void login(boolean sync) throws JaxmppException {
+	public void login(boolean sync) throws JaxmppException {
 		this.sessionObject.clear();
 
 		if (this.sessionLogic != null) {
