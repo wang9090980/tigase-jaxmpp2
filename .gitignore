@@ -17,3 +17,5 @@ jaxmpp-gwt/build
 jaxmpp-android/bin
 jaxmpp-android/gen
 *.iml
+.idea/
+.DS_Store
