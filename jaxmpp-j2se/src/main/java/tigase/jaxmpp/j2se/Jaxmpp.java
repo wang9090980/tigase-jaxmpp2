@@ -272,12 +272,12 @@ public class Jaxmpp extends JaxmppCore {
 	@Override
 	protected void onException(JaxmppException e) throws JaxmppException {
 		log.log(Level.FINE, "Catching exception", e);
-		sessionObject.setProperty(EXCEPTION_KEY, e);
-		try {
-			connector.stop();
-		} catch (Exception e1) {
-			log.log(Level.FINE, "Disconnecting error", e1);
-		}
+        sessionObject.setProperty(EXCEPTION_KEY, e);
+        try {
+            connector.stop();
+        } catch (Exception e1) {
+            log.log(Level.FINE, "Disconnecting error", e1);
+        }
 		synchronized (Jaxmpp.this) {
 			// (new Exception("DEBUG")).printStackTrace();
 			Jaxmpp.this.notify();

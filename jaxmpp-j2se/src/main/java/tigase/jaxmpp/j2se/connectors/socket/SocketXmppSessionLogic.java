@@ -17,13 +17,8 @@
  */
 package tigase.jaxmpp.j2se.connectors.socket;
 
-import tigase.jaxmpp.core.client.BareJID;
-import tigase.jaxmpp.core.client.Connector;
+import tigase.jaxmpp.core.client.*;
 import tigase.jaxmpp.core.client.Connector.ConnectorEvent;
-import tigase.jaxmpp.core.client.PacketWriter;
-import tigase.jaxmpp.core.client.SessionObject;
-import tigase.jaxmpp.core.client.XmppModulesManager;
-import tigase.jaxmpp.core.client.XmppSessionLogic;
 import tigase.jaxmpp.core.client.exceptions.JaxmppException;
 import tigase.jaxmpp.core.client.observer.Listener;
 import tigase.jaxmpp.core.client.xml.XMLException;
@@ -38,219 +33,215 @@ import tigase.jaxmpp.core.client.xmpp.modules.auth.NonSaslAuthModule;
 import tigase.jaxmpp.core.client.xmpp.modules.auth.NonSaslAuthModule.NonSaslAuthEvent;
 import tigase.jaxmpp.core.client.xmpp.modules.auth.SaslModule.SaslEvent;
 import tigase.jaxmpp.core.client.xmpp.modules.presence.PresenceModule;
-import tigase.jaxmpp.core.client.xmpp.modules.roster.RosterModule;
 
 public class SocketXmppSessionLogic implements XmppSessionLogic {
 
-	private AuthModule authModule;
+    private final SocketConnector connector;
+    private final XmppModulesManager modulesManager;
+    private final Listener<AuthModule.AuthEvent> saslEventListener;
+    private final Listener<ConnectorEvent> connectorListener;
+    private final SessionObject sessionObject;
+    private final Listener<StreamFeaturesReceivedEvent> streamFeaturesEventListener;
+    private AuthModule authModule;
+    private StreamFeaturesModule featuresModule;
+    private ResourceBinderModule resourceBinder;
+    private Listener<ResourceBindEvent> resourceBindListener;
+    private Listener<SessionEstablishmentEvent> sessionEstablishmentListener;
+    private SessionEstablishmentModule sessionEstablishmentModule;
+    private SessionListener sessionListener;
 
-	private final SocketConnector connector;
+    public SocketXmppSessionLogic(SocketConnector connector, XmppModulesManager modulesManager, SessionObject sessionObject,
+                                  PacketWriter writer) {
+        this.connector = connector;
+        this.modulesManager = modulesManager;
+        this.sessionObject = sessionObject;
 
-	private StreamFeaturesModule featuresModule;
+        this.connectorListener = new Listener<Connector.ConnectorEvent>() {
 
-	private final XmppModulesManager modulesManager;
+            @Override
+            public void handleEvent(Connector.ConnectorEvent be) throws JaxmppException {
+                processConnectorEvents(be);
+            }
+        };
 
-	private ResourceBinderModule resourceBinder;
+        this.streamFeaturesEventListener = new Listener<StreamFeaturesModule.StreamFeaturesReceivedEvent>() {
 
-	private Listener<ResourceBindEvent> resourceBindListener;
+            @Override
+            public void handleEvent(StreamFeaturesReceivedEvent be) throws JaxmppException {
+                try {
+                    processStreamFeatures(be);
+                } catch (JaxmppException e) {
+                    processException(e);
+                }
+            }
+        };
+        this.saslEventListener = new
 
-	private final Listener<AuthModule.AuthEvent> saslEventListener;
+                Listener<AuthModule.AuthEvent>() {
 
-	private Listener<SessionEstablishmentEvent> sessionEstablishmentListener;
+                    @Override
+                    public void handleEvent(AuthModule.AuthEvent be) throws JaxmppException {
+                        try {
+                            if (be instanceof SaslEvent) {
+                                processSaslEvent((SaslEvent) be);
+                            } else if (be instanceof NonSaslAuthEvent) {
+                                processNonSaslEvent((NonSaslAuthEvent) be);
+                            }
+                        } catch (JaxmppException e) {
+                            processException(e);
+                        }
+                    }
 
-	private SessionEstablishmentModule sessionEstablishmentModule;
+                };
+        this.resourceBindListener = new
 
-	private SessionListener sessionListener;
+                Listener<ResourceBindEvent>() {
 
-	private final Listener<ConnectorEvent> connectorListener;
+                    @Override
+                    public void handleEvent(ResourceBindEvent be) throws JaxmppException {
+                        try {
+                            processResourceBindEvent(be);
+                        } catch (JaxmppException e) {
+                            processException(e);
+                        }
 
-	private final SessionObject sessionObject;
+                    }
+                };
+        this.sessionEstablishmentListener = new
 
-	private final Listener<StreamFeaturesReceivedEvent> streamFeaturesEventListener;
+                Listener<SessionEstablishmentModule.SessionEstablishmentEvent>() {
 
-	public SocketXmppSessionLogic(SocketConnector connector, XmppModulesManager modulesManager, SessionObject sessionObject,
-			PacketWriter writer) {
-		this.connector = connector;
-		this.modulesManager = modulesManager;
-		this.sessionObject = sessionObject;
+                    @Override
+                    public void handleEvent(SessionEstablishmentEvent be) throws JaxmppException {
+                        sessionBindedAndEstablished();
+                    }
+                };
+    }
 
-		this.connectorListener = new Listener<Connector.ConnectorEvent>() {
+    static Throwable extractCauseException(Throwable ex) {
+        Throwable th = ex.getCause();
+        if (th == null)
+            return ex;
 
-			@Override
-			public void handleEvent(Connector.ConnectorEvent be) throws JaxmppException {
-				processConnectorEvents(be);
-			}
-		};
+        for (int i = 0; i < 4; i++) {
+            if (!(th instanceof JaxmppException))
+                return th;
+            if (th.getCause() == null)
+                return th;
+            th = th.getCause();
+        }
+        return ex;
+    }
 
-		this.streamFeaturesEventListener = new Listener<StreamFeaturesModule.StreamFeaturesReceivedEvent>() {
+    protected void processConnectorEvents(ConnectorEvent be) throws JaxmppException {
+        if (be.getType() == Connector.Error && be.getCaught() != null) {
+            Throwable e1 = extractCauseException(be.getCaught());
+            JaxmppException e = (JaxmppException) (e1 instanceof JaxmppException ? e1 : new JaxmppException(e1));
+            processException(e);
+        }
+    }
 
-			@Override
-			public void handleEvent(StreamFeaturesReceivedEvent be) throws JaxmppException {
-				try {
-					processStreamFeatures(be);
-				} catch (JaxmppException e) {
-					processException(e);
-				}
-			}
-		};
-		this.saslEventListener = new Listener<AuthModule.AuthEvent>() {
+    @Override
+    public void beforeStart() throws JaxmppException {
+        if (sessionObject.getProperty(SessionObject.DOMAIN_NAME) == null
+                && sessionObject.getProperty(SessionObject.USER_BARE_JID) == null)
+            throw new JaxmppException("No user JID or server name specified");
 
-			@Override
-			public void handleEvent(AuthModule.AuthEvent be) throws JaxmppException {
-				try {
-					if (be instanceof SaslEvent) {
-						processSaslEvent((SaslEvent) be);
-					} else if (be instanceof NonSaslAuthEvent) {
-						processNonSaslEvent((NonSaslAuthEvent) be);
-					}
-				} catch (JaxmppException e) {
-					processException(e);
-				}
-			}
+        if (sessionObject.getProperty(SessionObject.DOMAIN_NAME) == null)
+            sessionObject.setProperty(SessionObject.DOMAIN_NAME,
+                    ((BareJID) sessionObject.getProperty(SessionObject.USER_BARE_JID)).getDomain());
 
-		};
-		this.resourceBindListener = new Listener<ResourceBindEvent>() {
+    }
 
-			@Override
-			public void handleEvent(ResourceBindEvent be) throws JaxmppException {
-				try {
-					processResourceBindEvent(be);
-				} catch (JaxmppException e) {
-					processException(e);
-				}
+    protected void processException(JaxmppException e) throws JaxmppException {
+        if (sessionListener != null)
+            sessionListener.onException(e);
+    }
 
-			}
-		};
-		this.sessionEstablishmentListener = new Listener<SessionEstablishmentModule.SessionEstablishmentEvent>() {
+    protected void processNonSaslEvent(final NonSaslAuthModule.NonSaslAuthEvent be) throws JaxmppException {
+        if (be.getType() == AuthModule.AuthFailed) {
+            throw new JaxmppException("Unauthorized with condition=" + be.getError());
+        } else if (be.getType() == AuthModule.AuthSuccess) {
+            connector.restartStream();
+        }
+    }
 
-			@Override
-			public void handleEvent(SessionEstablishmentEvent be) throws JaxmppException {
-				sessionBindedAndEstablished();
-			}
-		};
-	}
+    protected void processResourceBindEvent(ResourceBindEvent be) throws JaxmppException {
+        if (SessionEstablishmentModule.isSessionEstablishingAvailable(sessionObject)) {
+            modulesManager.getModule(SessionEstablishmentModule.class).establish();
+        } else
+            sessionBindedAndEstablished();
+    }
 
-	protected void processConnectorEvents(ConnectorEvent be) throws JaxmppException {
-		if (be.getType() == Connector.Error && be.getCaught() != null) {
-			Throwable e1 = extractCauseException(be.getCaught());
-			JaxmppException e = (JaxmppException) (e1 instanceof JaxmppException ? e1 : new JaxmppException(e1));
-			processException(e);
-		}
-	}
+    protected void processSaslEvent(SaslEvent be) throws JaxmppException {
+        if (be.getType() == AuthModule.AuthFailed) {
+            throw new JaxmppException("Unauthorized with condition=" + be.getError());
+        } else if (be.getType() == AuthModule.AuthSuccess) {
+            connector.restartStream();
+        }
+    }
 
-	static Throwable extractCauseException(Throwable ex) {
-		Throwable th = ex.getCause();
-		if (th == null)
-			return ex;
+    protected void processStreamFeatures(StreamFeaturesReceivedEvent be) throws JaxmppException {
+        try {
+            final Boolean tlsDisabled = sessionObject.getProperty(SocketConnector.TLS_DISABLED_KEY);
+            final boolean authAvailable = AuthModule.isAuthAvailable(sessionObject);
+            final boolean tlsAvailable = SocketConnector.isTLSAvailable(sessionObject);
 
-		for (int i = 0; i < 4; i++) {
-			if (!(th instanceof JaxmppException))
-				return th;
-			if (th.getCause() == null)
-				return th;
-			th = th.getCause();
-		}
-		return ex;
-	}
+            final boolean isAuthorized = sessionObject.getProperty(AuthModule.AUTHORIZED) == Boolean.TRUE;
+            final boolean isConnectionSecure = connector.isSecure();
 
-	@Override
-	public void beforeStart() throws JaxmppException {
-		if (sessionObject.getProperty(SessionObject.DOMAIN_NAME) == null
-				&& sessionObject.getProperty(SessionObject.USER_BARE_JID) == null)
-			throw new JaxmppException("No user JID or server name specified");
+            if (!isConnectionSecure && tlsAvailable && (tlsDisabled == null || !tlsDisabled)) {
+                connector.startTLS();
+            } else if (!isAuthorized && authAvailable) {
+                authModule.login();
+            } else if (isAuthorized) {
+                resourceBinder.bind();
+            }
+        } catch (XMLException e) {
+            e.printStackTrace();
+        }
+    }
 
-		if (sessionObject.getProperty(SessionObject.DOMAIN_NAME) == null)
-			sessionObject.setProperty(SessionObject.DOMAIN_NAME,
-					((BareJID) sessionObject.getProperty(SessionObject.USER_BARE_JID)).getDomain());
+    private void sessionBindedAndEstablished() throws JaxmppException {
+        PresenceModule presence = this.modulesManager.getModule(PresenceModule.class);
+        if (presence != null) {
+            presence.sendInitialPresence();
+        }
+    }
 
-	}
+    @Override
+    public void setSessionListener(SessionListener sessionListener) throws JaxmppException {
+        this.sessionListener = sessionListener;
+        featuresModule = this.modulesManager.getModule(StreamFeaturesModule.class);
+        authModule = this.modulesManager.getModule(AuthModule.class);
+        resourceBinder = this.modulesManager.getModule(ResourceBinderModule.class);
+        this.sessionEstablishmentModule = this.modulesManager.getModule(SessionEstablishmentModule.class);
 
-	protected void processException(JaxmppException e) throws JaxmppException {
-		if (sessionListener != null)
-			sessionListener.onException(e);
-	}
+        connector.addListener(Connector.Error, connectorListener);
+        featuresModule.addListener(StreamFeaturesModule.StreamFeaturesReceived, streamFeaturesEventListener);
+        authModule.addListener(AuthModule.AuthSuccess, this.saslEventListener);
+        authModule.addListener(AuthModule.AuthFailed, this.saslEventListener);
+        resourceBinder.addListener(ResourceBinderModule.ResourceBindSuccess, resourceBindListener);
+        this.sessionEstablishmentModule.addListener(SessionEstablishmentModule.SessionEstablishmentSuccess,
+                this.sessionEstablishmentListener);
+        this.sessionEstablishmentModule.addListener(SessionEstablishmentModule.SessionEstablishmentError,
+                this.sessionEstablishmentListener);
 
-	protected void processNonSaslEvent(final NonSaslAuthModule.NonSaslAuthEvent be) throws JaxmppException {
-		if (be.getType() == AuthModule.AuthFailed) {
-			throw new JaxmppException("Unauthorized with condition=" + be.getError());
-		} else if (be.getType() == AuthModule.AuthSuccess) {
-			connector.restartStream();
-		}
-	}
+    }
 
-	protected void processResourceBindEvent(ResourceBindEvent be) throws JaxmppException {
-		if (SessionEstablishmentModule.isSessionEstablishingAvailable(sessionObject)) {
-			modulesManager.getModule(SessionEstablishmentModule.class).establish();
-		} else
-			sessionBindedAndEstablished();
-	}
+    @Override
+    public void unbind() throws JaxmppException {
+        connector.removeListener(Connector.Error, connectorListener);
+        featuresModule.removeListener(StreamFeaturesModule.StreamFeaturesReceived, streamFeaturesEventListener);
+        authModule.removeListener(AuthModule.AuthSuccess, this.saslEventListener);
+        authModule.removeListener(AuthModule.AuthFailed, this.saslEventListener);
+        resourceBinder.removeListener(ResourceBinderModule.ResourceBindSuccess, resourceBindListener);
 
-	protected void processSaslEvent(SaslEvent be) throws JaxmppException {
-		if (be.getType() == AuthModule.AuthFailed) {
-			throw new JaxmppException("Unauthorized with condition=" + be.getError());
-		} else if (be.getType() == AuthModule.AuthSuccess) {
-			connector.restartStream();
-		}
-	}
+        this.sessionEstablishmentModule.removeListener(SessionEstablishmentModule.SessionEstablishmentSuccess,
+                this.sessionEstablishmentListener);
+        this.sessionEstablishmentModule.removeListener(SessionEstablishmentModule.SessionEstablishmentError,
+                this.sessionEstablishmentListener);
 
-	protected void processStreamFeatures(StreamFeaturesReceivedEvent be) throws JaxmppException {
-		try {
-			final Boolean tlsDisabled = sessionObject.getProperty(SocketConnector.TLS_DISABLED_KEY);
-			final boolean authAvailable = AuthModule.isAuthAvailable(sessionObject);
-			final boolean tlsAvailable = SocketConnector.isTLSAvailable(sessionObject);
-
-			final boolean isAuthorized = sessionObject.getProperty(AuthModule.AUTHORIZED) == Boolean.TRUE;
-			final boolean isConnectionSecure = connector.isSecure();
-
-			if (!isConnectionSecure && tlsAvailable && (tlsDisabled == null || !tlsDisabled)) {
-				connector.startTLS();
-			} else if (!isAuthorized && authAvailable) {
-				authModule.login();
-			} else if (isAuthorized) {
-				resourceBinder.bind();
-			}
-		} catch (XMLException e) {
-			e.printStackTrace();
-		}
-	}
-
-	private void sessionBindedAndEstablished() throws JaxmppException {
-        //Do nothing. Leave to app.
-	}
-
-	@Override
-	public void setSessionListener(SessionListener sessionListener) throws JaxmppException {
-		this.sessionListener = sessionListener;
-		featuresModule = this.modulesManager.getModule(StreamFeaturesModule.class);
-		authModule = this.modulesManager.getModule(AuthModule.class);
-		resourceBinder = this.modulesManager.getModule(ResourceBinderModule.class);
-		this.sessionEstablishmentModule = this.modulesManager.getModule(SessionEstablishmentModule.class);
-
-		connector.addListener(Connector.Error, connectorListener);
-		featuresModule.addListener(StreamFeaturesModule.StreamFeaturesReceived, streamFeaturesEventListener);
-		authModule.addListener(AuthModule.AuthSuccess, this.saslEventListener);
-		authModule.addListener(AuthModule.AuthFailed, this.saslEventListener);
-		resourceBinder.addListener(ResourceBinderModule.ResourceBindSuccess, resourceBindListener);
-		this.sessionEstablishmentModule.addListener(SessionEstablishmentModule.SessionEstablishmentSuccess,
-				this.sessionEstablishmentListener);
-		this.sessionEstablishmentModule.addListener(SessionEstablishmentModule.SessionEstablishmentError,
-				this.sessionEstablishmentListener);
-
-	}
-
-	@Override
-	public void unbind() throws JaxmppException {
-		connector.removeListener(Connector.Error, connectorListener);
-		featuresModule.removeListener(StreamFeaturesModule.StreamFeaturesReceived, streamFeaturesEventListener);
-		authModule.removeListener(AuthModule.AuthSuccess, this.saslEventListener);
-		authModule.removeListener(AuthModule.AuthFailed, this.saslEventListener);
-		resourceBinder.removeListener(ResourceBinderModule.ResourceBindSuccess, resourceBindListener);
-
-		this.sessionEstablishmentModule.removeListener(SessionEstablishmentModule.SessionEstablishmentSuccess,
-				this.sessionEstablishmentListener);
-		this.sessionEstablishmentModule.removeListener(SessionEstablishmentModule.SessionEstablishmentError,
-				this.sessionEstablishmentListener);
-
-	}
+    }
 
 }
