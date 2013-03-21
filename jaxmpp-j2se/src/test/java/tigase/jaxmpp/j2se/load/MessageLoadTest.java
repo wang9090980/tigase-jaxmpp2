@@ -38,7 +38,7 @@ public class MessageLoadTest {
 		
 		DriverManager.class.forName("com.mysql.jdbc.Driver");
 		Connection con=DriverManager.getConnection("jdbc:mysql://cosdb:3306/meituanxm?user=q3boy&password=q3girl&useUnicode=true&characterEncoding=UTF-8&autoCreateUser=true");
-		ResultSet rs=con.createStatement().executeQuery("select substring(user_id,1,locate('@',user_id)-1) from tig_users where user_pw='1' and user_id like '%@sankuai.info' and user_id not in('zhangdongxiao@sankuai.info','liule@sankuai.info','jianjingbao@sankuai.info','luodandan@sankuai.info','lishuai02@sankuai.info','') limit "+offset+","+limit);
+		ResultSet rs=con.createStatement().executeQuery("select substring(user_id,1,locate('@',user_id)-1) from tig_users where user_pw='1' and user_id like '%@sankuai.info' and user_id not in('zhangdongxiao@sankuai.info','liule@sankuai.info','jianjingbao@sankuai.info','luodandan@sankuai.info','lishuai02@sankuai.info','wanglujing@sankuai.info') limit "+offset+","+limit);
 		
 		while(rs.next()){
 			re.add(rs.getString(1));
