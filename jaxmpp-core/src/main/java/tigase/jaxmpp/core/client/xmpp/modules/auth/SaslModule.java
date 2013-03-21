@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import tigase.jaxmpp.core.client.BareJID;
+import tigase.jaxmpp.core.client.Base64;
 import tigase.jaxmpp.core.client.Connector;
 import tigase.jaxmpp.core.client.PacketWriter;
 import tigase.jaxmpp.core.client.SessionObject;
@@ -291,8 +293,10 @@ public class SaslModule implements XmppModule {
 		SaslMechanism mechanism = sessionObject.getProperty(SASL_MECHANISM);
 		String v = element.getValue();
 		String r = mechanism.evaluateChallenge(v, sessionObject);
-		Element auth = new DefaultElement("response", r, "urn:ietf:params:xml:ns:xmpp-sasl");
-		writer.write(auth);
+		if(r!=null||!"SSO".equals(mechanism.name())){
+			Element auth = new DefaultElement("response", r, "urn:ietf:params:xml:ns:xmpp-sasl");
+			writer.write(auth);
+		}
 	}
 
 	protected void processFailure(Element element) throws JaxmppException {
@@ -310,6 +314,17 @@ public class SaslModule implements XmppModule {
 	}
 
 	protected void processSuccess(Element element) throws JaxmppException {
+		//这个有必要么？
+		//真正起作用的，应该是用BINDED_RESOURCE_JID
+		//初步测试表明不会影响Jaxmpp正常工作，就看其他业务有没有依赖这个属性。
+		//如果没有依赖的话，success将不需做任何调整
+		String b64=element.getValue();
+		if(b64!=null&&!b64.isEmpty()){
+			String value=new String(Base64.decode(b64));
+			System.out.println(value);
+			sessionObject.setUserProperty(SessionObject.USER_BARE_JID, BareJID.bareJIDInstance(value));
+		}
+		
 		sessionObject.setProperty(AuthModule.AUTHORIZED, Boolean.TRUE);
 		log.fine("Authenticated");
 		observable.fireEvent(AuthModule.AuthSuccess, new SaslEvent(AuthModule.AuthSuccess, sessionObject));
