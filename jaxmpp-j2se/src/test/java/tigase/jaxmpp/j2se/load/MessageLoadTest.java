@@ -16,10 +16,13 @@ import tigase.jaxmpp.core.client.UIDGenerator;
 import tigase.jaxmpp.core.client.JaxmppCore.JaxmppEvent;
 import tigase.jaxmpp.core.client.exceptions.JaxmppException;
 import tigase.jaxmpp.core.client.observer.Listener;
+import tigase.jaxmpp.core.client.xml.DefaultElement;
+import tigase.jaxmpp.core.client.xml.Element;
 import tigase.jaxmpp.core.client.xmpp.modules.SessionEstablishmentModule;
 import tigase.jaxmpp.core.client.xmpp.modules.chat.MessageModule;
 import tigase.jaxmpp.core.client.xmpp.modules.chat.MessageModule.MessageEvent;
 import tigase.jaxmpp.core.client.xmpp.stanzas.Message;
+import tigase.jaxmpp.core.client.xmpp.stanzas.Stanza;
 import tigase.jaxmpp.core.client.xmpp.stanzas.StanzaType;
 import tigase.jaxmpp.j2se.Jaxmpp;
 import tigase.jaxmpp.j2se.WatchedXmpp;
@@ -27,7 +30,7 @@ import tigase.jaxmpp.j2se.WatchedXmpp;
 public class MessageLoadTest {
 	/**
 	 * if("sankuai.info".equals(hostname)){
-			return java.util.Arrays.asList(new Entry("192.168.2.242", 5222));
+			return java.util.Arrays.asList(new Entry("192.168.2.160", 5222));
 		}
 	 */
 	public static String[] getAccounts(int offset,int limit) throws ClassNotFoundException, SQLException{
@@ -51,7 +54,7 @@ public class MessageLoadTest {
 	private static final AtomicInteger received=new AtomicInteger();
 	public static void main(String[] args) throws ClassNotFoundException, SQLException, JaxmppException{
 		//1s随机发送消息
-		final String[] accounts=getAccounts(0,300);
+		final String[] accounts=getAccounts(0,200);
 		WatchedXmpp[] xms=new WatchedXmpp[accounts.length];
 		
 		for(int i=0;i<accounts.length;i++){
@@ -86,8 +89,17 @@ public class MessageLoadTest {
 	    	                    msg.setTo(rm.getFrom());
 	    	                    msg.setId(UIDGenerator.next());
 	    	                    msg.setType(StanzaType.chat);
+//	    	                    Element ele=new DefaultElement("req",null,"jabber:client");
+//			                    ele.setAttribute("id", msg.getId());
+//			                    msg.addChild(ele);
 	    	                    xm.send(msg);
 	    	                    sended.incrementAndGet();
+	    					}
+	    					List<Element> res=rm.getChildren("req");
+	    					if(res!=null&&res.size()==1){
+	    						Element ack=new DefaultElement("ack",null,"jabber:client");
+	    						ack.setAttribute("id", res.get(0).getAttribute("id"));
+	    						//xm.getConnector().send(ack);
 	    					}
 	    					received.incrementAndGet();
 	    				}
@@ -102,6 +114,10 @@ public class MessageLoadTest {
 		                    msg.setTo(JID.jidInstance(to));
 		                    msg.setId(UIDGenerator.next());
 		                    msg.setType(StanzaType.chat);
+//		                    Element ele=new DefaultElement("req",null,"jabber:client");
+//		                    ele.setAttribute("id", msg.getId());
+//		                    msg.addChild(ele);
+		                    
 		                    xm.send(msg);
 		                    sended.incrementAndGet();
 		            		try {
