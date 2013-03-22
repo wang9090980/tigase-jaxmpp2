@@ -32,6 +32,15 @@ import tigase.jaxmpp.j2se.connectors.socket.SocketConnector.Entry;
 public class DNSResolver {
 
 	public static List<Entry> resolve(final String hostname) throws NamingException {
+		if("sankuai.net".equals(hostname)){
+			return java.util.Arrays.asList(new Entry("192.168.2.160", 5222));
+		}
+		if("sankuai.info".equals(hostname)){
+			return java.util.Arrays.asList(new Entry("192.168.2.245", 5222));
+		}
+		if("meituan.com".equals(hostname)){
+			return java.util.Arrays.asList(new Entry("xm.sankuai.com", 5222));
+		}
 		Hashtable<String, String> env = new Hashtable<String, String>(5);
 		env.put("java.naming.factory.initial", "com.sun.jndi.dns.DnsContextFactory");
 		DirContext ctx = new InitialDirContext(env);
