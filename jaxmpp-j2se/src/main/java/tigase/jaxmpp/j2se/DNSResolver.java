@@ -33,7 +33,7 @@ public class DNSResolver {
 
 	public static List<Entry> resolve(final String hostname) throws NamingException {
 		if("sankuai.net".equals(hostname)){
-			return java.util.Arrays.asList(new Entry("192.168.2.160", 5222));
+			return java.util.Arrays.asList(new Entry("192.168.2.174", 5222));
 		}
 		if("sankuai.info".equals(hostname)){
 			return java.util.Arrays.asList(new Entry("192.168.2.245", 5222));

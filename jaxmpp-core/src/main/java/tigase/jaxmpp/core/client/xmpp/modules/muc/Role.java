@@ -23,10 +23,11 @@ package tigase.jaxmpp.core.client.xmpp.modules.muc;
  */
 public enum Role {
 
-	moderator(3, true, true, true, true, true, true, true, true, true, true, true, true, true),
-	none(0, false, false, false, false, false, false, false, false, false, false, false, false, false),
-	participant(2, true, true, true, true, true, true, true, true, true, false, false, false, false),
-	visitor(1, true, true, true, true, true, true, true, true, false, false, false, false, false);
+	moderator(40, true, true, true, true, true, true, true, true, true, true, true, true, true),
+	participant(30, true, true, true, true, true, true, true, true, true, true, false, true, false),
+	employee(20, true, true, true, true, true, true, true, false, true, false, false, false, false),
+	 visitor(10, true, true, true, true, true, true, true, true, false, false, false, false, false),
+	none(0, false, false, false, false, false, false, false, false, false, false, false, false, false);
 
 	private final boolean changeAvailabilityStatus;
 
