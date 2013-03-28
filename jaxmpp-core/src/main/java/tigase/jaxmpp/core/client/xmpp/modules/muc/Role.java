@@ -17,17 +17,20 @@
  */
 package tigase.jaxmpp.core.client.xmpp.modules.muc;
 
+import java.lang.Override;
+import java.lang.String;
+
 /**
  * @author bmalkow
- * 
+ *
  */
 public enum Role {
 
-	moderator(40, true, true, true, true, true, true, true, true, true, true, true, true, true),
-	participant(30, true, true, true, true, true, true, true, true, true, true, false, true, false),
-	employee(20, true, true, true, true, true, true, true, false, true, false, false, false, false),
-	 visitor(10, true, true, true, true, true, true, true, true, false, false, false, false, false),
-	none(0, false, false, false, false, false, false, false, false, false, false, false, false, false);
+	moderator(40, "moderator", true, true, true, true, true, true, true, true, true, true, true, true, true),
+	participant(30, "participant", true, true, true, true, true, true, true, true, true, true, false, true, false),
+	employee(20, "employee", true, true, true, true, true, true, true, false, true, false, false, false, false),
+	visitor(10, "visitor", true, true, true, true, true, true, true, true, false, false, false, false, false),
+	none(0, "none", false, false, false, false, false, false, false, false, false, false, false, false, false);
 
 	private final boolean changeAvailabilityStatus;
 
@@ -56,12 +59,14 @@ public enum Role {
 	private final boolean sendPrivateMessages;
 
 	private final int weight;
+	private final String name;
 
-	private Role(int weight, boolean presentInRoom, boolean receiveMessages, boolean receiveOccupantPresence,
+	private Role(int weight, String name, boolean presentInRoom, boolean receiveMessages, boolean receiveOccupantPresence,
 			boolean presenceBroadcastedToRoom, boolean changeAvailabilityStatus, boolean changeRoomNickname,
 			boolean sendPrivateMessages, boolean inviteOtherUsers, boolean sendMessagesToAll, boolean modifySubject,
 			boolean kickParticipantsAndVisitors, boolean grantVoice, boolean revokeVoice) {
 		this.weight = weight;
+		this.name = name;
 		this.presentInRoom = presentInRoom;
 		this.receiveMessages = receiveMessages;
 		this.receiveOccupantPresence = receiveOccupantPresence;
@@ -79,6 +84,10 @@ public enum Role {
 
 	public int getWeight() {
 		return weight;
+	}
+
+	public final String getName() {
+		return name;
 	}
 
 	public boolean isChangeAvailabilityStatus() {
@@ -131,5 +140,27 @@ public enum Role {
 
 	public boolean isSendPrivateMessages() {
 		return sendPrivateMessages;
+	}
+
+	@Override
+	public String toString() {
+		return name;
+	}
+
+	public static Role fromString(String name) {
+		if (name == null) {
+//			throw new NullPointerException("name == null");
+			return none;
+		}
+		Role[] values = values();
+		if (values == null) {
+			throw new IllegalArgumentException(Role.class.getName() + " is not an enum type");
+		}
+		for (Role value : values) {
+			if (name.equals(value.getName())) {
+				return value;
+			}
+		}
+		throw new IllegalArgumentException(name + " is not a constant in " + Role.class.getName());
 	}
 }

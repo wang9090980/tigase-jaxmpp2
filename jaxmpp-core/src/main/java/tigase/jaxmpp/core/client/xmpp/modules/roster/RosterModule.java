@@ -238,7 +238,7 @@ public class RosterModule extends AbstractIQModule implements InitializingModule
 		return false;
 	}
 
-	private void loadFromCache() {
+	public void loadFromCache() {
 		if (versionProvider != null) {
 			final RosterStore roster = sessionObject.getRoster();
 			Collection<RosterItem> items = versionProvider.loadCachedRoster(sessionObject);
