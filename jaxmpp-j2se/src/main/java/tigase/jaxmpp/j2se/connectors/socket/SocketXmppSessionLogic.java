@@ -203,10 +203,7 @@ public class SocketXmppSessionLogic implements XmppSessionLogic {
     }
 
     private void sessionBindedAndEstablished() throws JaxmppException {
-        PresenceModule presence = this.modulesManager.getModule(PresenceModule.class);
-        if (presence != null) {
-            presence.sendInitialPresence();
-        }
+        //do nothing
     }
 
     @Override
