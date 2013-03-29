@@ -319,7 +319,7 @@ public class SaslModule implements XmppModule {
 		//初步测试表明不会影响Jaxmpp正常工作，就看其他业务有没有依赖这个属性。
 		//如果没有依赖的话，success将不需做任何调整
 		String b64=element.getValue();
-		if(b64!=null&&!b64.isEmpty()){
+		if(b64!=null&&b64.length()>0){
 			String value=new String(Base64.decode(b64));
 			System.out.println(value);
 			sessionObject.setUserProperty(SessionObject.USER_BARE_JID, BareJID.bareJIDInstance(value));
