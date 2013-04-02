@@ -35,9 +35,6 @@ public class DNSResolver {
 		if("sankuai.net".equals(hostname)){
 			return java.util.Arrays.asList(new Entry("192.168.2.174", 5222));
 		}
-		if("sankuai.info".equals(hostname)){
-			return java.util.Arrays.asList(new Entry("192.168.2.245", 5222));
-		}
 		if("meituan.com".equals(hostname)){
 			return java.util.Arrays.asList(new Entry("xm.sankuai.com", 5222));
 		}
