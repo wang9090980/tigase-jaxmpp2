@@ -1,6 +1,7 @@
 package tigase.jaxmpp.j2se;
 
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import tigase.jaxmpp.core.client.AsyncCallback;
@@ -115,11 +116,19 @@ public class WatchedXmpp extends Jaxmpp{
         while(loginable&&connectable){
             log.info("WatchDog:Loginable&Connectable...");
             try{
-                super.login();
-                
+            	if(!isConnected()){
+            		super.login();
+            	}
+
                 ping();
+            }catch(JaxmppException ie){
+            	if(ie.getCause() instanceof InterruptedException){
+            		sleep(PING_PERIOD);
+            	}else{
+            		log.log(Level.WARNING,"XMPP异常",ie);
+            	}
             }catch(Throwable th){
-                //th.printStackTrace();
+            	log.log(Level.WARNING,"网络链接异常",th);
             }
 
             sleep(CONNECT_PERIOD);
