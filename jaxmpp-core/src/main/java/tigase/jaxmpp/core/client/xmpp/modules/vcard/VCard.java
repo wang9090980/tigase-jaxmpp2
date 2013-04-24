@@ -36,6 +36,7 @@ public class VCard implements Serializable {
     private String orgId;
     private String photoType;
     private String photoVal;
+    private String photoUrl;
 
     private static void add(Element vcard, String name, String value) throws XMLException {
         if (value != null)
@@ -70,6 +71,14 @@ public class VCard implements Serializable {
         }
 
         return true;
+    }
+
+    public String getPhotoUrl() {
+        return photoUrl;
+    }
+
+    public void setPhotoUrl(String photoUrl) {
+        this.photoUrl = photoUrl;
     }
 
     public String getFullname() {
@@ -170,6 +179,8 @@ public class VCard implements Serializable {
                         this.photoVal = pit.getValue();
                         if (this.photoVal != null)
                             this.photoVal = this.photoVal.replace("\n", "").trim();
+                    } else if ("url".equals(pit.getName())) {
+                        this.photoUrl = pit.getValue();
                     }
                 }
             }
@@ -186,7 +197,7 @@ public class VCard implements Serializable {
         add(vcard, "gender", this.gender);
         add(vcard, "orgId", this.orgId);
         add(vcard, "orgName", this.orgName);
-        add(vcard, "PHOTO", new String[]{"TYPE", "BINVAL"}, new String[]{this.photoType, this.photoVal});
+        add(vcard, "PHOTO", new String[]{"TYPE", "BINVAL", "url"}, new String[]{this.photoType, this.photoVal, this.photoUrl});
         return vcard;
     }
 }
