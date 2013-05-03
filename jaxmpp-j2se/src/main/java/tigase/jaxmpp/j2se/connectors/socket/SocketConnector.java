@@ -27,10 +27,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.List;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -64,6 +61,7 @@ import tigase.jaxmpp.core.client.xml.XMLException;
 import tigase.jaxmpp.core.client.xmpp.modules.registration.InBandRegistrationModule;
 import tigase.jaxmpp.j2se.DNSResolver;
 import tigase.jaxmpp.j2se.Jaxmpp;
+import tigase.jaxmpp.j2se.connectors.DeviceInfoManager;
 import tigase.jaxmpp.j2se.xml.J2seElement;
 import tigase.xml.SimpleParser;
 import tigase.xml.SingletonFactory;
@@ -553,6 +551,15 @@ public class SocketConnector implements Connector {
 
 		sb.append("xmlns='jabber:client' ");
 		sb.append("xmlns:stream='http://etherx.jabber.org/streams' ");
+        DeviceInfoManager deviceInfoManager = UniversalFactory.createInstance(DeviceInfoManager.class.getName());
+        if(deviceInfoManager != null){
+            Set<Map.Entry<String,String>> entrySet = deviceInfoManager.entrySet();
+            if(entrySet!=null){
+                for (Map.Entry<String,String> entry: entrySet){
+                    sb.append(entry.getKey()).append("='").append(entry.getValue()).append("' ");
+                }
+            }
+        }
 		sb.append("version='1.0'>");
 
 		if (log.isLoggable(Level.FINEST))
