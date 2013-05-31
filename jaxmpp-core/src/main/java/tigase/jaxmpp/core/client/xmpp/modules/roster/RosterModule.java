@@ -109,11 +109,12 @@ public class RosterModule extends AbstractIQModule implements InitializingModule
 		return result;
 	}
 
-	final static RosterItem fill(final RosterItem rosterItem, String name, Subscription subscription,
+	final static RosterItem fill(final RosterItem rosterItem, String name, String category, Subscription subscription,
 			Collection<String> groups, boolean ask) {
 		rosterItem.setName(name);
 		rosterItem.setSubscription(subscription);
-		rosterItem.setAsk(ask);
+        rosterItem.setCategory(category);
+        rosterItem.setAsk(ask);
 		if (groups != null) {
 			rosterItem.getGroups().clear();
 			rosterItem.getGroups().addAll(groups);
@@ -161,7 +162,7 @@ public class RosterModule extends AbstractIQModule implements InitializingModule
 			JaxmppException {
 		RosterItem item = new RosterItem(jid, sessionObject);
 		item.setData(RosterItem.ID_KEY, createId(jid));
-		fill(item, name, Subscription.none, groups, false);
+		fill(item, name, null, Subscription.none, groups, false);
 
 		IQ iq = IQ.create();
 		iq.setType(StanzaType.set);
@@ -263,6 +264,7 @@ public class RosterModule extends AbstractIQModule implements InitializingModule
 		final BareJID jid = BareJID.bareJIDInstance(item.getAttribute("jid"));
 		final String name = item.getAttribute("name");
 		final Subscription subscription = getSubscription(item.getAttribute("subscription"));
+        final String category = item.getAttribute("category");
 		final boolean ask = item.getAttribute("ask") != null && "subscribe".equals(item.getAttribute("ask"));
 		final ArrayList<String> groups = new ArrayList<String>();
 		for (Element group : item.getChildren("group")) {
@@ -274,7 +276,7 @@ public class RosterModule extends AbstractIQModule implements InitializingModule
 		if (subscription == Subscription.remove && currentItem != null) {
 			// remove item
 			HashSet<String> groupsOld = new HashSet<String>(sessionObject.getRoster().groups);
-			fill(currentItem, name, subscription, null, ask);
+			fill(currentItem, name, category, subscription, null, ask);
 			event = new RosterEvent(ItemRemoved, currentItem, sessionObject);
 			sessionObject.getRoster().removeItem(jid);
 			Set<String> modifiedGroups = sessionObject.getRoster().calculateModifiedGroups(groupsOld);
@@ -285,31 +287,31 @@ public class RosterModule extends AbstractIQModule implements InitializingModule
 			currentItem = new RosterItem(jid, sessionObject);
 			currentItem.setData(RosterItem.ID_KEY, createId(jid));
 			event = new RosterEvent(ItemAdded, currentItem, sessionObject);
-			fill(currentItem, name, subscription, groups, ask);
+			fill(currentItem, name, category, subscription, groups, ask);
 			Set<String> modifiedGroups = sessionObject.getRoster().addItem(currentItem);
 			event.setChangedGroups(modifiedGroups);
 			log.fine("Roster item " + jid + " added");
 		} else if (currentItem.isAsk() && ask && (subscription == Subscription.from || subscription == Subscription.none)) {
 			// ask cancelled
-			fill(currentItem, name, subscription, null, ask);
+			fill(currentItem, name, category, subscription, null, ask);
 			event = new RosterEvent(ItemUpdated, currentItem, ChangeAction.askCancelled, sessionObject);
 			log.fine("Roster item " + jid + " ask cancelled");
 		} else if (currentItem.getSubscription() == Subscription.both && subscription == Subscription.from
 				|| currentItem.getSubscription() == Subscription.to && subscription == Subscription.none) {
 			// unsubscribed
-			fill(currentItem, name, subscription, null, ask);
+			fill(currentItem, name, category, subscription, null, ask);
 			event = new RosterEvent(ItemUpdated, currentItem, ChangeAction.unsubscribed, sessionObject);
 			log.fine("Roster item " + jid + " unsubscribed");
 		} else if (currentItem.getSubscription() == Subscription.from && subscription == Subscription.both
 				|| currentItem.getSubscription() == Subscription.none && subscription == Subscription.to) {
 			// subscribed
-			fill(currentItem, name, subscription, null, ask);
+			fill(currentItem, name, category, subscription, null, ask);
 			event = new RosterEvent(ItemUpdated, currentItem, ChangeAction.subscribed, sessionObject);
 			log.fine("Roster item " + jid + " subscribed");
 		} else {
 			event = new RosterEvent(ItemUpdated, currentItem, sessionObject);
 			HashSet<String> groupsOld = new HashSet<String>(sessionObject.getRoster().groups);
-			fill(currentItem, name, subscription, groups, ask);
+			fill(currentItem, name, category, subscription, groups, ask);
 			Set<String> modifiedGroups = sessionObject.getRoster().calculateModifiedGroups(groupsOld);
 			event.setChangedGroups(modifiedGroups);
 

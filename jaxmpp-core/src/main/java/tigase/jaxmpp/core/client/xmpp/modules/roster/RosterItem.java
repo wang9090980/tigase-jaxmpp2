@@ -88,6 +88,8 @@ public class RosterItem {
 
 	private Subscription subscription;
 
+	private String category;
+
 	public RosterItem(BareJID jid, SessionObject sessionObject) {
 		this.jid = jid;
 		this.sessionObject = sessionObject;
@@ -168,6 +170,15 @@ public class RosterItem {
 		return subscription;
 	}
 
+    /**
+     * Returns category of buddy.
+     *
+     * @return category of buddy.
+     */
+    public String getCategory() {
+        return category;
+    }
+
 	@Override
 	public int hashCode() {
 		return jid.hashCode();
@@ -217,6 +228,10 @@ public class RosterItem {
 	public void setSubscription(Subscription subscription) {
 		this.subscription = subscription;
 	}
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
 
 	@Override
 	public String toString() {
