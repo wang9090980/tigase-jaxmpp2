@@ -79,11 +79,12 @@ public class DiscoItemsModule extends AbstractIQModule {
 
 	public static abstract class DiscoItemsAsyncCallback implements AsyncCallback {
 
-		public abstract void onInfoReceived(String attribute, ArrayList<Item> items) throws XMLException;
+		public abstract void onInfoReceived(String ver, String attribute, ArrayList<Item> items) throws XMLException;
 
 		@Override
 		public void onSuccess(Stanza responseStanza) throws XMLException {
 			final Element query = responseStanza.getChildrenNS("query", "http://jabber.org/protocol/disco#items");
+			String ver = query.getAttribute("ver");
 			List<Element> ritems = query.getChildren("item");
 			ArrayList<Item> items = new ArrayList<DiscoItemsModule.Item>();
 			for (Element i : ritems) {
@@ -94,7 +95,7 @@ public class DiscoItemsModule extends AbstractIQModule {
 				to.setNode(i.getAttribute("node"));
 				items.add(to);
 			}
-			onInfoReceived(query.getAttribute("node"), items);
+			onInfoReceived(ver, query.getAttribute("node"), items);
 		}
 
 	}
@@ -162,10 +163,15 @@ public class DiscoItemsModule extends AbstractIQModule {
 	}
 
 	public void getItems(JID jid, String node, AsyncCallback callback) throws XMLException, JaxmppException {
+		getItems(jid, null, node, callback);
+	}
+
+	public void getItems(JID jid, String version, String node, AsyncCallback callback) throws XMLException, JaxmppException {
 		IQ iq = IQ.create();
 		iq.setTo(jid);
 		iq.setType(StanzaType.get);
 		Element query = new DefaultElement("query", null, "http://jabber.org/protocol/disco#items");
+		query.setAttribute("ver", version);
 		if (node != null) {
 			query.setAttribute("node", node);
 		}
