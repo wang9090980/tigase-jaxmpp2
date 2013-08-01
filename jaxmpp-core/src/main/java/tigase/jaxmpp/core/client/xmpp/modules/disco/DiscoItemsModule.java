@@ -162,11 +162,15 @@ public class DiscoItemsModule extends AbstractIQModule {
 		getItems(jid, (AsyncCallback) callback);
 	}
 
-	public void getItems(JID jid, String node, AsyncCallback callback) throws XMLException, JaxmppException {
-		getItems(jid, null, node, callback);
+	public void getItems(JID jid, DiscoItemsAsyncCallback callback, String version) throws XMLException, JaxmppException {
+		getItems(jid, null, (AsyncCallback) callback, version);
 	}
 
-	public void getItems(JID jid, String version, String node, AsyncCallback callback) throws XMLException, JaxmppException {
+	public void getItems(JID jid, String node, AsyncCallback callback) throws XMLException, JaxmppException {
+		getItems(jid, node, callback, null);
+	}
+
+	public void getItems(JID jid, String node, AsyncCallback callback, String version) throws XMLException, JaxmppException {
 		IQ iq = IQ.create();
 		iq.setTo(jid);
 		iq.setType(StanzaType.get);
