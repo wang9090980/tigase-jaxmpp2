@@ -84,6 +84,8 @@ public class RosterItem {
 
 	private String name;
 
+	private String username;
+
 	private final SessionObject sessionObject;
 
 	private Subscription subscription;
@@ -150,6 +152,15 @@ public class RosterItem {
 	 */
 	public String getName() {
 		return name;
+	}
+
+	/**
+	 * Returns username of buddy.
+	 *
+	 * @return username of buddy.
+	 */
+	public String getUserName() {
+		return username;
 	}
 
 	/**
@@ -223,6 +234,10 @@ public class RosterItem {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public void setUserName(String username) {
+		this.username = username;
 	}
 
 	public void setSubscription(Subscription subscription) {
